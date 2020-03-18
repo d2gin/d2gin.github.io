@@ -56,5 +56,5 @@ tags:
 	```
 	git add .
 	git commit -m "更新信息"
-	git push origin hexo
+	git push origin master:hexo
 	```
