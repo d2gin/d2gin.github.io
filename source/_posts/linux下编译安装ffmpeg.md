@@ -8,7 +8,9 @@ tags:
 	- ffmpeg
 ---
 
-现在最新的FFMPEG 他自带有音频和视频解码的库，可能是因为版权的一些问题，它没有自带编码音频和视频的库，另外，如果需要使用ffplay 进行视频播放，还需要安装SDL。下面介绍在linux 下，以H264 和 MP3 视音频编码 SDL显示为例的安装。
+### 前言
+
+现在最新的FFMPEG 他自带有音频和视频解码的库，可能是因为版权的一些问题，它没有自带编码音频和视频的库，另外，如果需要使用ffplay 进行视频播放，还需要安装SDL。下面介绍在linux 下，以H264 和 MP3 视音频编码 SDL显示为例的安装。现在我需要借助ffmpeg实现视频转gif，并加入字幕。
 
 #### 1、下载最新的安装代码。
 
@@ -52,7 +54,7 @@ make install
 make
 make install
 ```
-安装完后需要把fribidi的`fribidi/lib/pkgconfig`目录添加到环境变量PCK_CONFIG_PATH中去
+安装fribidi完后需要把fribidi的`fribidi/lib/pkgconfig`目录添加到环境变量PCK_CONFIG_PATH中去
 
 #### 6、安装libass
 
@@ -71,3 +73,11 @@ make install
 ```
 
 如果执行ffmpeg出现类似`ffmpeg: error while loading shared libraries: libass.so.9: cannot open shared object file: No such file or directory`的提示，只需要在`/etc/ld.so.conf`文件后添加一行`/usr/local/lib`即可
+
+#### 8、测试FFMPEG
+
+```shell
+ffmpeg -h
+```
+
+{% asset_img 20200318104132.png 执行结果 %}
