@@ -1,6 +1,8 @@
 ---
 title: 在vscode开发autojs脚本、调出控制台
 date: 2020-03-13 16:26:46
+index_img: /cover/3ea08048641117c36ba83437d432e2a0.jpg
+banner_img: /cover/3ea08048641117c36ba83437d432e2a0.jpg
 tags:
     - vscode
     - autojs

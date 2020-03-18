@@ -1,6 +1,8 @@
 ---
 title: Apache error 504 Gateway Timeout
 date: 2020-03-07 01:51:09
+index_img: /cover/43169ac71b42d8414bde4bf57f3e00f6.jpg
+banner_img: /cover/43169ac71b42d8414bde4bf57f3e00f6.jpg
 tags:
 	- Apache
 ---

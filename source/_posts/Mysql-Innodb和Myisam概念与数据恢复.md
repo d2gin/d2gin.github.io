@@ -1,6 +1,8 @@
 ---
 title: Mysql--Innodb和Myisam概念与数据恢复
 date: 2020-03-06 23:26:01
+index_img: /cover/4a11a52bc240b46825b8a37f70850e52.jpg
+banner_img: /cover/4a11a52bc240b46825b8a37f70850e52.jpg
 tags: 
 	- 数据库
 	- mysql
