@@ -19,7 +19,7 @@ tags:
     SDL 显示库： http://www.libsdl.org/download-2.0.php
     ASS 字幕：http://www.linuxfromscratch.org/blfs/view/svn/multimedia/libass.html
     FFMPEG ： http://www.ffmpeg.org/download.html
-前面Filter的主要是看个人需求，因为我需要使用ffmpeg生成带字幕的gif图片，所以需要ASS Filter，但编译Ass需要fribidi，所以需要编译Ass前需要安装一个fribidi：http://www.linuxfromscratch.org/blfs/view/svn/general/fribidi.html
+前面四项按需安装，因为我需要使用ffmpeg生成带字幕的gif图片，所以需要安装libass，但编译libass需要fribidi，所以需要编译Ass前需要安装一个fribidi：http://www.linuxfromscratch.org/blfs/view/svn/general/fribidi.html
 
 #### 2、 安装MP3编码库
 
@@ -54,7 +54,7 @@ make install
 make
 make install
 ```
-安装fribidi完后需要把fribidi的`fribidi/lib/pkgconfig`目录添加到环境变量PCK_CONFIG_PATH中去
+安装fribidi完后需要把fribidi的`fribidi/lib/pkgconfig`目录添加到环境变量PCK_CONFIG_PATH中去`export PKG_CONFIG_PATH="/usr/lib/pkgconfig:/usr/local/lib/pkgconfig:/root/soft/ffmpeg/lib/pkgconfig:/root/soft/fribidi/lib/pkgconfig"`
 
 #### 6、安装libass
 
