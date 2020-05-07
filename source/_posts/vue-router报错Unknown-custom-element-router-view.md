@@ -1,6 +1,8 @@
 ---
 title: vue-router报错Unknown custom element router-view
 date: 2020-04-02 10:33:13
+index_img: /cover/89ee1b868aa29359c8b0c81918cd7eb1.jpeg
+banner_img: /cover/89ee1b868aa29359c8b0c81918cd7eb1.jpeg
 tags:
 	- vue
 	- vue-router
