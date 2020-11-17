@@ -9,10 +9,17 @@
     "server": "hexo server"
   },
   "hexo": {
+<<<<<<< HEAD
     "version": "4.2.1"
   },
   "dependencies": {
     "hexo": "^4.2.1",
+=======
+    "version": "4.2.0"
+  },
+  "dependencies": {
+    "hexo": "^4.0.0",
+>>>>>>> d158151b2218b4f6ebbb0ac069379cda53c7ddbd
     "hexo-deployer-git": "^2.1.0",
     "hexo-generator-archive": "^1.0.0",
     "hexo-generator-category": "^1.0.0",
@@ -25,4 +32,8 @@
     "hexo-renderer-stylus": "^1.1.0",
     "hexo-server": "^1.0.0"
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> d158151b2218b4f6ebbb0ac069379cda53c7ddbd
